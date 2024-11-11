@@ -102,10 +102,17 @@ async function run() {
       const result = await roomsCollection.find().toArray();
       res.send(result);
     });
-    //!  =====================Room collection one==========================================================================
+    //*  =====================Room collection one==========================================================================
     app.get("/room/:id", async (req, res) => {
       const id = req.params.id;
       const result = await roomsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+    //!  =====================Room collection save in database=====================================================================
+    app.post("/rooms", async (req, res) => {
+      console.log();
+      const rooms = req.body;
+      const result = await roomsCollection.insertOne(rooms);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
