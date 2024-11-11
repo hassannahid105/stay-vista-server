@@ -3,10 +3,10 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const morgan = require("morgan");
-const port = process.env.PORT || 8000;
+const port = 5000;
 
 // middleware
 const corsOptions = {
@@ -33,8 +33,10 @@ const verifyToken = async (req, res, next) => {
     next();
   });
 };
-
-const client = new MongoClient(process.env.DB_URI, {
+const uri =
+  "mongodb+srv://bristroboss:VHHGlkuvn3BPPyMi@cluster0.gw9o5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
@@ -42,12 +44,14 @@ const client = new MongoClient(process.env.DB_URI, {
   },
 });
 async function run() {
+  const usersCollection = client.db("stayvista").collection("users");
+  const roomsCollection = client.db("stayvista").collection("rooms");
   try {
     // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       console.log("I need a new jwt", user);
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      const token = jwt.sign(user, "secrect4354", {
         expiresIn: "365d",
       });
       res
@@ -93,7 +97,17 @@ async function run() {
       );
       res.send(result);
     });
-
+    //* =====================Room collection==========================================================================
+    app.get("/rooms", async (req, res) => {
+      const result = await roomsCollection.find().toArray();
+      res.send(result);
+    });
+    //!  =====================Room collection one==========================================================================
+    app.get("/room/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await roomsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
