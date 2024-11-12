@@ -102,13 +102,25 @@ async function run() {
       const result = await roomsCollection.find().toArray();
       res.send(result);
     });
+    //* =====================get rooms for host=====================================================================
+    app.get("/rooms/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { "host.email": email };
+      const result = await roomsCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
     //*  =====================Room collection one==========================================================================
     app.get("/room/:id", async (req, res) => {
       const id = req.params.id;
       const result = await roomsCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
-    //!  =====================Room collection save in database=====================================================================
+    //*  =====================Room collection save in database=====================================================================
     app.post("/rooms", async (req, res) => {
       console.log();
       const rooms = req.body;
