@@ -3,6 +3,7 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const morgan = require("morgan");
@@ -46,6 +47,7 @@ const client = new MongoClient(uri, {
 async function run() {
   const usersCollection = client.db("stayvista").collection("users");
   const roomsCollection = client.db("stayvista").collection("rooms");
+  const bookingsCollection = client.db("stayvista").collection("bookings");
   try {
     // auth related api
     app.post("/jwt", async (req, res) => {
@@ -127,6 +129,61 @@ async function run() {
       const result = await roomsCollection.insertOne(rooms);
       res.send(result);
     });
+    //!  =====================generate client secrect for client ==================================================
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      if (!price || amount < 1) return;
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clietSecret: client_secret });
+    });
+    //  SAVE BOOKING INFO
+    app.post("/bookings", async (req, res) => {
+      const doc = req.body;
+      const result = await bookingsCollection.insertOne(doc);
+      // send email
+      res.send(result);
+    });
+    //  update BOOKING INFO
+    app.patch("/rooms/status/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.body.status;
+      console.log(id, status);
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          booked: status,
+        },
+      };
+      const result = await roomsCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    //!  ====================get all booking for a gusest by email ========================================
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+      const query = { "guest.email": email };
+      if (!email) {
+        return res.send([]);
+      }
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result);
+    });
+    //!  ====================get all booking for a gusest by email ========================================
+    app.get("/bookings/host", async (req, res) => {
+      const email = req.query.email;
+      const query = { "host.email": email };
+      if (!email) {
+        return res.send([]);
+      }
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result);
+    });
+    //!  ====================get all user for admin ========================================
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
